@@ -159,7 +159,7 @@ public class GoogleAuthenticator {
       HttpPost httpPost = new HttpPost(config.getString("google.auth.loginUrl"));
       GoogleUtils.setupHttpRequestDefaults(httpPost);
       httpPost.setEntity(new UrlEncodedFormEntity(setupFormInputs(config, galx), HTTP.UTF_8));
-      httpPost.addHeader("Referrer", config.getString("google.auth.loginUrl"));
+      httpPost.addHeader("referer", config.getString("google.auth.loginUrl")+"?continue=http://www.google.com/trends");
 
       HttpResponse response = client.execute(httpPost);
       GoogleUtils.toString(response.getEntity().getContent());
