@@ -67,7 +67,6 @@ public class GoogleUtils {
     r.addHeader("Content-type", config.getString("request.default.content-type"));
     r.addHeader("User-Agent", config.getString("request.default.user-agent"));
     r.addHeader("Accept", config.getString("request.default.accept"));
-    r.addHeader("Accept-Encoding", config.getString("request.default.accept-encoding"));
   }
 
   /**
