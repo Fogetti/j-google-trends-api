@@ -51,11 +51,9 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.CookieStore;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.protocol.HTTP;
@@ -94,9 +92,9 @@ public class GoogleAuthenticator {
    * @throws GoogleAuthenticatorException
    */
   public boolean authenticate() throws GoogleAuthenticatorException {
-    CookieStore cookieStore = new BasicCookieStore();
     String galx = galx();
-    return login(galx);
+    String gxf = gxf();
+    return login(galx, gxf);
   }
 
   /**
@@ -144,13 +142,49 @@ public class GoogleAuthenticator {
   }
 
   /**
+   * Parse the login page for the gxf id.
+   *
+   * @return gxf id
+   * @throws GoogleAuthenticatorException
+   */
+  private String gxf() throws GoogleAuthenticatorException {
+    String gxf = null;
+    try {
+      DataConfiguration config = GoogleConfigurator.getConfiguration();
+
+      Pattern pattern = Pattern.compile(config.getString("google.auth.reGxf"), Pattern.CASE_INSENSITIVE);
+      HttpGet get = new HttpGet(config.getString("google.auth.loginUrl"));
+
+      HttpResponse response = this.client.execute(get);
+      String html = GoogleUtils.toString(response.getEntity().getContent());
+      Matcher matcher = pattern.matcher(html);
+      if (matcher.find()) {
+        gxf = matcher.group(1);
+      }
+
+      if (gxf == null) {
+        throw new GoogleAuthenticatorException("Cannot parse gxf!");
+      }
+    } catch (ConfigurationException ex) {
+      throw new GoogleAuthenticatorException(ex);
+    } catch (ClientProtocolException ex) {
+      throw new GoogleAuthenticatorException(ex);
+    } catch (IOException ex) {
+      throw new GoogleAuthenticatorException(ex);
+    }
+
+    return gxf;
+  }
+
+  /**
    * Login in Google.
    *
    * @param galx The GALX id
+   * @param gxf The gxf id
    * @return <code>true</code> if login was successful
    * @throws GoogleAuthenticatorException
    */
-  private boolean login(String galx) throws GoogleAuthenticatorException {
+  private boolean login(String galx, String gxf) throws GoogleAuthenticatorException {
     isLoggedIn = false;
 
     try {
@@ -158,7 +192,7 @@ public class GoogleAuthenticator {
 
       HttpPost httpPost = new HttpPost(config.getString("google.auth.loginUrl"));
       GoogleUtils.setupHttpRequestDefaults(httpPost);
-      httpPost.setEntity(new UrlEncodedFormEntity(setupFormInputs(config, galx), HTTP.UTF_8));
+      httpPost.setEntity(new UrlEncodedFormEntity(setupFormInputs(config, galx, gxf), HTTP.UTF_8));
       httpPost.addHeader("referer", config.getString("google.auth.loginUrl")+"?continue=http://www.google.com/trends");
 
       HttpResponse response = client.execute(httpPost);
@@ -205,15 +239,18 @@ public class GoogleAuthenticator {
    *
    * @param config
    * @param galx
+   * @param gxf 
    * @return
    */
-  private List<NameValuePair> setupFormInputs(DataConfiguration config, String galx) {
+  private List<NameValuePair> setupFormInputs(DataConfiguration config, String galx, String gxf) {
     List<NameValuePair> formInputs = new ArrayList<NameValuePair>();
     formInputs.add(new BasicNameValuePair(config.getString("google.auth.input.email"), this.username));
     formInputs.add(new BasicNameValuePair(config.getString("google.auth.input.passwd"), this.passwd));
+    formInputs.add(new BasicNameValuePair(config.getString("google.auth.input.page"), "PasswordSeparationSignIn"));
     formInputs.add(new BasicNameValuePair(config.getString("google.auth.input.continue"), "http://www.google.com/trends"));
     formInputs.add(new BasicNameValuePair(config.getString("google.auth.input.persistentCookie"), "yes"));
     formInputs.add(new BasicNameValuePair(config.getString("google.auth.input.galx"), galx));
+    formInputs.add(new BasicNameValuePair(config.getString("google.auth.input.gxf"), gxf));
     return formInputs;
   }
 }

@@ -40,6 +40,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.DataConfiguration;
 import org.apache.http.client.methods.HttpRequestBase;
@@ -66,6 +67,7 @@ public class GoogleUtils {
     r.addHeader("Content-type", config.getString("request.default.content-type"));
     r.addHeader("User-Agent", config.getString("request.default.user-agent"));
     r.addHeader("Accept", config.getString("request.default.accept"));
+    r.addHeader("Accept-Encoding", config.getString("request.default.accept-encoding"));
   }
 
   /**
