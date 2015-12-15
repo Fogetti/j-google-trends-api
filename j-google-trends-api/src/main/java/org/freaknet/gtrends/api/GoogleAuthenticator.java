@@ -44,6 +44,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.DataConfiguration;
 import org.apache.http.HttpEntity;
@@ -210,6 +211,7 @@ public class GoogleAuthenticator {
     List<NameValuePair> formInputs = new ArrayList<NameValuePair>();
     formInputs.add(new BasicNameValuePair(config.getString("google.auth.input.email"), this.username));
     formInputs.add(new BasicNameValuePair(config.getString("google.auth.input.passwd"), this.passwd));
+    formInputs.add(new BasicNameValuePair(config.getString("google.auth.input.continue"), "http://www.google.com/trends"));
     formInputs.add(new BasicNameValuePair(config.getString("google.auth.input.persistentCookie"), "yes"));
     formInputs.add(new BasicNameValuePair(config.getString("google.auth.input.galx"), galx));
     return formInputs;
