@@ -42,6 +42,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -69,6 +70,7 @@ import org.freaknet.gtrends.api.exceptions.GoogleAuthenticatorException;
  */
 public class GoogleAuthenticator {
 
+  private static final Logger log = Logger.getLogger(GoogleConfigurator.getLoggerPrefix());
   private String username = "";
   private String passwd = "";
   private final DefaultHttpClient client;
@@ -119,6 +121,7 @@ public class GoogleAuthenticator {
     try {
       DataConfiguration config = GoogleConfigurator.getConfiguration();
 
+      log.info("Requesting GALX");
       Pattern pattern = Pattern.compile(config.getString("google.auth.reGalx"), Pattern.CASE_INSENSITIVE);
       HttpGet get = new HttpGet(config.getString("google.auth.loginUrl"));
 
@@ -156,6 +159,7 @@ public class GoogleAuthenticator {
     try {
       DataConfiguration config = GoogleConfigurator.getConfiguration();
 
+      log.info("Submitting the input form");
       HttpPost httpPost = new HttpPost(config.getString("google.auth.loginUrl"));
       GoogleUtils.setupHttpRequestDefaults(httpPost);
       httpPost.setEntity(new UrlEncodedFormEntity(setupFormInputs(config, galx), HTTP.UTF_8));
@@ -164,6 +168,7 @@ public class GoogleAuthenticator {
       HttpResponse response = client.execute(httpPost);
       GoogleUtils.toString(response.getEntity().getContent());
 
+      log.info(String.format("Cookie check [URL=%s]",config.getString("google.auth.cookieCheckUrl")));
       HttpGet httpGet = new HttpGet(new URI(config.getString("google.auth.cookieCheckUrl")));
       GoogleUtils.setupHttpRequestDefaults(httpGet);
       HttpResponse httpResponse = client.execute(httpGet);
