@@ -19,17 +19,21 @@
 package org.freaknet.gtrends.api;
 
 import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import org.apache.commons.configuration.ConfigurationException;
+import org.apache.http.Header;
+import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.freaknet.gtrends.api.exceptions.GoogleAuthenticatorException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpRequestBase;
 import org.freaknet.gtrends.api.exceptions.GoogleTrendsClientException;
 import org.freaknet.gtrends.api.exceptions.GoogleTrendsRequestException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Implements a client for Google Trends https://www.google.com/trends/ .
@@ -38,44 +42,33 @@ import org.freaknet.gtrends.api.exceptions.GoogleTrendsRequestException;
  */
 public class GoogleTrendsClient {
 
+  private static final Logger logger = LoggerFactory.getLogger(GoogleTrendsClient.class);
   private final GoogleAuthenticator authenticator;
-  private final DefaultHttpClient client;
+  private final HttpClient client;
 
   /**
    *
    * @param authenticator
    * @param client
    */
-  public GoogleTrendsClient(GoogleAuthenticator authenticator, DefaultHttpClient client) {
+  public GoogleTrendsClient(GoogleAuthenticator authenticator, HttpClient client) {
     this.authenticator = authenticator;
     this.client = client;
   }
 
   /**
-   * Execute the request.
+   * Execute the request through the given proxy.
    *
    * @param request
+   * @param proxy
    * @return content The content of the response
    * @throws GoogleTrendsClientException
    */
-  public String execute(GoogleTrendsRequest request) throws GoogleTrendsClientException {
+  public String execute(GoogleTrendsRequest request, HttpHost proxy) throws GoogleTrendsClientException {
     String html = null;
     try {
-      if (!authenticator.isLoggedIn()) {
-        authenticator.authenticate();
-      }
-      Logger.getLogger(GoogleConfigurator.getLoggerPrefix()).log(Level.FINE, "Query: {0}", request.build().toString());
-
-      HttpResponse response = client.execute(request.build());
-      html = GoogleUtils.toString(response.getEntity().getContent());
-
-      Pattern p = Pattern.compile(GoogleConfigurator.getConfiguration().getString("google.trends.client.reError"), Pattern.CASE_INSENSITIVE);
-      Matcher matcher = p.matcher(html);
-      if (matcher.find()) {
-        throw new GoogleTrendsClientException("*** You are running too fast man! Looks like you reached your quota limit. Wait a while and slow it down with the '-S' option! *** ");
-      }
-    } catch (GoogleAuthenticatorException ex) {
-      throw new GoogleTrendsClientException(ex);
+      HttpRequestBase builtRequest = request.build(proxy);
+	  html = run(request, builtRequest);
     } catch (ClientProtocolException ex) {
       throw new GoogleTrendsClientException(ex);
     } catch (IOException ex) {
@@ -87,5 +80,56 @@ public class GoogleTrendsClient {
     }
 
     return html;
+  }
+  
+  /**
+   * Execute the request.
+   *
+   * @param request
+   * @return content The content of the response
+   * @throws GoogleTrendsClientException
+   */
+  public String execute(GoogleTrendsRequest request) throws GoogleTrendsClientException {
+    String html = null;
+    try {
+      HttpRequestBase builtRequest = request.build();
+	  html = run(request, builtRequest);
+    } catch (ClientProtocolException ex) {
+      throw new GoogleTrendsClientException(ex);
+    } catch (IOException ex) {
+      throw new GoogleTrendsClientException(ex);
+    } catch (ConfigurationException ex) {
+      throw new GoogleTrendsClientException(ex);
+    } catch (GoogleTrendsRequestException ex) {
+      throw new GoogleTrendsClientException(ex);
+    }
+
+    return html;
+  }
+
+  private String run(GoogleTrendsRequest request, HttpRequestBase builtRequest)
+	throws IOException, ClientProtocolException, ConfigurationException, GoogleTrendsClientException {
+	String html;
+	logger.debug("Query: {}", builtRequest.toString());
+
+      HttpResponse response = client.execute(builtRequest);
+      logger.debug("Status: {}", response.getStatusLine());
+      Header[] httpHeader = response.getHeaders("Location");
+      while (httpHeader.length > 0) {
+    	String location = httpHeader[0].getValue();
+        logger.debug("Query: {}", location);
+		HttpGet httpGet = new HttpGet(location);
+        response = client.execute(httpGet);
+        httpHeader = response.getHeaders("Location");
+      }
+      html = GoogleUtils.toString(response.getEntity().getContent());
+      logger.debug("Result: {}", html);
+
+      Pattern p = Pattern.compile(GoogleConfigurator.getConfiguration().getString("google.trends.client.reError"), Pattern.CASE_INSENSITIVE);
+      Matcher matcher = p.matcher(html);
+      if (matcher.matches()) {
+        throw new GoogleTrendsClientException("*** You are running too fast man! Looks like you reached your quota limit. Wait a while and slow it down with the '-S' option! *** ");
+      }
+	return html;
   }
 }

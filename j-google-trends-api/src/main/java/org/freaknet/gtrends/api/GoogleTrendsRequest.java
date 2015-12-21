@@ -21,9 +21,12 @@ package org.freaknet.gtrends.api;
 import java.net.URISyntaxException;
 import java.util.Iterator;
 import java.util.List;
+
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.DataConfiguration;
+import org.apache.http.HttpHost;
 import org.apache.http.NameValuePair;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.utils.URIBuilder;
@@ -36,7 +39,7 @@ import org.freaknet.gtrends.api.exceptions.GoogleTrendsRequestException;
  */
 public class GoogleTrendsRequest {
 
-  private URIBuilder builder;
+  protected URIBuilder builder;
 
   /**
    *
@@ -67,6 +70,23 @@ public class GoogleTrendsRequest {
    */
   public HttpRequestBase build() throws GoogleTrendsRequestException {
     return build(new BasicNameValuePair[0]);
+  }
+
+  /**
+   * Build the <code>HttpRequestBase</code> with the provided proxy.
+   *
+   * @param proxy
+   * @return the built request
+   * @throws org.freaknet.gtrends.api.exceptions.GoogleTrendsRequestException
+   */
+  public HttpRequestBase build(HttpHost proxy) throws GoogleTrendsRequestException {
+    RequestConfig config = RequestConfig.custom()
+      .setProxy(proxy)
+      .setRedirectsEnabled(true)
+      .build();
+    HttpRequestBase request = build(new BasicNameValuePair[0]);
+    request.setConfig(config);
+	return request;
   }
 
   /**
@@ -149,5 +169,13 @@ public class GoogleTrendsRequest {
       NameValuePair p = i.next();
       builder.setParameter(p.getName(), p.getValue());
     }
+  }
+  
+  public String getUriString() throws GoogleTrendsRequestException {
+	  try {
+		  return builder.build().toString();	
+	  } catch (URISyntaxException ex) {
+		  throw new GoogleTrendsRequestException(ex);
+	  }
   }
 }

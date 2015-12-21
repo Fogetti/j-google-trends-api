@@ -42,7 +42,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -53,15 +52,17 @@ import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.CookieStore;
+import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.BasicCookieStore;
-import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.util.EntityUtils;
 import org.freaknet.gtrends.api.exceptions.GoogleAuthenticatorException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Provides a simple way to authenticate with username/password to Google.
@@ -70,10 +71,10 @@ import org.freaknet.gtrends.api.exceptions.GoogleAuthenticatorException;
  */
 public class GoogleAuthenticator {
 
-  private static final Logger log = Logger.getLogger(GoogleConfigurator.getLoggerPrefix());
+  private static final Logger logger = LoggerFactory.getLogger(GoogleAuthenticator.class);
   private String username = "";
   private String passwd = "";
-  private final DefaultHttpClient client;
+  private final HttpClient client;
   private boolean isLoggedIn = false;
 
   /**
@@ -83,7 +84,7 @@ public class GoogleAuthenticator {
    * @param passwd Google password
    * @param client <code>DefaultHttpClient</code> to use for the connection
    */
-  public GoogleAuthenticator(String username, String passwd, DefaultHttpClient client) {
+  public GoogleAuthenticator(String username, String passwd, HttpClient client) {
     this.username = username;
     this.passwd = passwd;
     this.client = client;
@@ -121,7 +122,6 @@ public class GoogleAuthenticator {
     try {
       DataConfiguration config = GoogleConfigurator.getConfiguration();
 
-      log.info("Requesting GALX");
       Pattern pattern = Pattern.compile(config.getString("google.auth.reGalx"), Pattern.CASE_INSENSITIVE);
       HttpGet get = new HttpGet(config.getString("google.auth.loginUrl"));
 
@@ -159,7 +159,6 @@ public class GoogleAuthenticator {
     try {
       DataConfiguration config = GoogleConfigurator.getConfiguration();
 
-      log.info("Submitting the input form");
       HttpPost httpPost = new HttpPost(config.getString("google.auth.loginUrl"));
       GoogleUtils.setupHttpRequestDefaults(httpPost);
       httpPost.setEntity(new UrlEncodedFormEntity(setupFormInputs(config, galx), HTTP.UTF_8));
@@ -168,7 +167,6 @@ public class GoogleAuthenticator {
       HttpResponse response = client.execute(httpPost);
       GoogleUtils.toString(response.getEntity().getContent());
 
-      log.info(String.format("Cookie check [URL=%s]",config.getString("google.auth.cookieCheckUrl")));
       HttpGet httpGet = new HttpGet(new URI(config.getString("google.auth.cookieCheckUrl")));
       GoogleUtils.setupHttpRequestDefaults(httpGet);
       HttpResponse httpResponse = client.execute(httpGet);

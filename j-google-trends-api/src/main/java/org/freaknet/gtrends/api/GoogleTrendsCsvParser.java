@@ -23,11 +23,12 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import org.apache.commons.configuration.ConfigurationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Parse the CSV as provided by the CSV Download functionality in Google Trends.
@@ -36,6 +37,7 @@ import org.apache.commons.configuration.ConfigurationException;
  */
 public class GoogleTrendsCsvParser {
 
+  private static final Logger logger = LoggerFactory.getLogger(GoogleTrendsCsvParser.class);
   private final String csv;
   private String separator;
 
@@ -59,7 +61,7 @@ public class GoogleTrendsCsvParser {
    */
   public String getSectionAsString(String section, boolean header) {
     String ret = null;
-    Logger.getLogger(GoogleConfigurator.getLoggerPrefix()).log(Level.FINE, "Parsing CSV for section: {0}", section);
+    logger.debug("Parsing CSV for section: {}", section);
 
     Pattern startSectionPattern = Pattern.compile("^" + section + ".*$", Pattern.MULTILINE);
     Matcher matcher = startSectionPattern.matcher(csv);
@@ -81,7 +83,7 @@ public class GoogleTrendsCsvParser {
         ret = ret.substring(ret.indexOf('\n') + 1);
       }
     } else {
-      Logger.getLogger(GoogleConfigurator.getLoggerPrefix()).log(Level.WARNING, "Writing the full CSV file. Section not found: #{0}", section);
+      logger.warn("Writing the full CSV file. Section not found: #{}", section);
     }
 
     return ret;

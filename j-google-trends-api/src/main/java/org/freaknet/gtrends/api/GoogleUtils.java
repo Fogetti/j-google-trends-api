@@ -64,9 +64,8 @@ public class GoogleUtils {
   public static void setupHttpRequestDefaults(HttpRequestBase r) throws ConfigurationException {
     DataConfiguration config = GoogleConfigurator.getConfiguration();
 
-    r.addHeader("Content-type", config.getString("request.default.content-type"));
-    r.addHeader("User-Agent", config.getString("request.default.user-agent"));
-    r.addHeader("Accept", config.getString("request.default.accept"));
+    r.addHeader("user-agent", config.getString("request.default.user-agent"));
+    r.addHeader("accept", config.getString("request.default.accept"));
   }
 
   /**
